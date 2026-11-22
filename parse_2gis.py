@@ -683,19 +683,39 @@ def excel_column(index):
     return name
 
 
+EXCEL_ROWS_PER_SHEET = 1_048_576
+
+
 def write_xlsx(path, columns, values):
     spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
     office = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
     package = "http://schemas.openxmlformats.org/package/2006/relationships"
     content = "http://schemas.openxmlformats.org/package/2006/content-types"
     excel_type = "application/vnd.openxmlformats-officedocument.spreadsheetml"
+    cards_per_sheet = EXCEL_ROWS_PER_SHEET - 1
+    sheet_count = max(1, (len(values) + cards_per_sheet - 1) // cards_per_sheet)
+    sheet_ids = range(1, sheet_count + 1)
+    sheet_paths = [f"worksheets/sheet{number}.xml" for number in sheet_ids]
+    sheet_names = ["Карточки", *(f"Карточки {number}" for number in range(2, sheet_count + 1))]
+    sheet_types = "".join(
+        f'<Override PartName="/xl/{target}" ContentType="{excel_type}.worksheet+xml"/>'
+        for target in sheet_paths
+    )
+    sheets = "".join(
+        f'<sheet name="{name}" sheetId="{number}" r:id="rId{number}"/>'
+        for number, name in zip(sheet_ids, sheet_names)
+    )
+    sheet_relationships = "".join(
+        f'<Relationship Id="rId{number}" Type="{office}/worksheet" Target="{target}"/>'
+        for number, target in zip(sheet_ids, sheet_paths)
+    )
     parts = {
         "[Content_Types].xml": (
             f'<Types xmlns="{content}">'
             '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
             '<Default Extension="xml" ContentType="application/xml"/>'
             f'<Override PartName="/xl/workbook.xml" ContentType="{excel_type}.sheet.main+xml"/>'
-            f'<Override PartName="/xl/worksheets/sheet1.xml" ContentType="{excel_type}.worksheet+xml"/>'
+            f'{sheet_types}'
             f'<Override PartName="/xl/styles.xml" ContentType="{excel_type}.styles+xml"/></Types>'
         ),
         "_rels/.rels": (
@@ -705,12 +725,13 @@ def write_xlsx(path, columns, values):
         ),
         "xl/workbook.xml": (
             f'<workbook xmlns="{spreadsheet}" xmlns:r="{office}">'
-            '<sheets><sheet name="Карточки" sheetId="1" r:id="rId1"/></sheets></workbook>'
+            f'<sheets>{sheets}</sheets></workbook>'
         ),
         "xl/_rels/workbook.xml.rels": (
             f'<Relationships xmlns="{package}">'
-            f'<Relationship Id="rId1" Type="{office}/worksheet" Target="worksheets/sheet1.xml"/>'
-            f'<Relationship Id="rId2" Type="{office}/styles" Target="styles.xml"/></Relationships>'
+            f'{sheet_relationships}'
+            f'<Relationship Id="rId{sheet_count + 1}" Type="{office}/styles" Target="styles.xml"/>'
+            '</Relationships>'
         ),
         "xl/styles.xml": (
             f'<styleSheet xmlns="{spreadsheet}">'
@@ -725,25 +746,34 @@ def write_xlsx(path, columns, values):
             '</styleSheet>'
         ),
     }
+    names = [excel_column(index) for index in range(1, len(columns) + 1)]
+    widths = [
+        min(55, max(12, max(len(row[index]) for row in chain((columns,), values)) + 2))
+        for index in range(len(columns))
+    ]
+    column_definitions = "".join(
+        f'<col min="{index}" max="{index}" width="{width}" customWidth="1" style="1"/>'
+        for index, width in enumerate(widths, 1)
+    )
+    sheet_start = (
+        f'<worksheet xmlns="{spreadsheet}"><cols>{column_definitions}</cols><sheetData>'
+    ).encode("utf-8")
+    cards = iter(values)
     with path.open("xb") as file, ZipFile(file, "w", compression=ZIP_DEFLATED) as archive:
         for name, xml in parts.items():
             archive.writestr(name, xml.encode("utf-8"))
-        with archive.open("xl/worksheets/sheet1.xml", "w") as sheet:
-            sheet.write(f'<worksheet xmlns="{spreadsheet}"><cols>'.encode("utf-8"))
-            for index in range(1, len(columns) + 1):
-                longest = max(len(row[index - 1]) for row in chain((columns,), values))
-                width = min(55, max(12, longest + 2))
-                sheet.write(f'<col min="{index}" max="{index}" width="{width}" customWidth="1" style="1"/>'.encode("utf-8"))
-            sheet.write(b"</cols><sheetData>")
-            names = [excel_column(index) for index in range(1, len(columns) + 1)]
-            for index, row in enumerate(chain((columns,), values), 1):
-                cells = "".join(
-                    f'<c r="{name}{index}" s="1" t="inlineStr">'
-                    f'<is><t xml:space="preserve">{excel_text(value)}</t></is></c>'
-                    for name, value in zip(names, row)
-                )
-                sheet.write(f'<row r="{index}">{cells}</row>'.encode("utf-8"))
-            sheet.write(b"</sheetData></worksheet>")
+        for target in sheet_paths:
+            with archive.open(f"xl/{target}", "w") as sheet:
+                sheet.write(sheet_start)
+                rows = chain((columns,), islice(cards, cards_per_sheet))
+                for index, row in enumerate(rows, 1):
+                    cells = "".join(
+                        f'<c r="{name}{index}" s="1" t="inlineStr">'
+                        f'<is><t xml:space="preserve">{excel_text(value)}</t></is></c>'
+                        for name, value in zip(names, row)
+                    )
+                    sheet.write(f'<row r="{index}">{cells}</row>'.encode("utf-8"))
+                sheet.write(b"</sheetData></worksheet>")
 
 
 def main(argv=None, *, on_progress=None, is_cancelled=None):
