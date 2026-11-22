@@ -1,10 +1,29 @@
-# 2ГИС Экспорт
+<p align="center">
+  <img src="assets/app.png" width="88" alt="Логотип 2ГИС Экспорт">
+</p>
 
-Небольшое нативное приложение для Windows и macOS. Введите город и поисковый запрос, например «Кафе рядом с вокзалом», выберите место сохранения и получите книгу Excel. Фоновому сбору нужен установленный Google Chrome. Само приложение открывается в отдельном окне.
+<h1 align="center">2ГИС Экспорт</h1>
+
+<p align="center">Поиск организаций в 2ГИС и выгрузка в Excel или CSV.<br>Нативное приложение для Windows и macOS и отдельный Python-скрипт.</p>
+
+<p align="center">
+  <a href="https://github.com/jaFuart/2gis-desktop/releases/latest"><strong>Скачать приложение</strong></a> ·
+  <a href="#работа-с-выгрузкой">Работа с выгрузкой</a> ·
+  <a href="#отдельный-python-скрипт">Python CLI</a>
+</p>
+
+![Окно новой выгрузки с поиском пекарен в Петрозаводске и панелью прогресса](desktop-preview.png)
+
+- **Поиск по городу** с автодополнением по 102 городам и регионам. В поле города можно вставить ссылку 2ГИС.
+- **Прогресс в реальном времени** с текущей страницей и счётчиками карточек, отменой после подтверждения и сохранением частичного результата.
+- **Локальная история** с повторным запуском запросов и доступом к сохранённым файлам.
+- **Текстовые ячейки XLSX** сохраняют исходное написание телефонов, рейтингов и часов работы.
+
+Desktop app and standalone Python CLI for exporting 2GIS business search results to XLSX or CSV.
 
 ## Запуск приложения
 
-В разделе [Releases](https://github.com/jaFuart/2gis-desktop/releases) доступны архивы для Windows x64, macOS Apple Silicon и macOS Intel. Сборку новой версии можно запустить в **Actions → Desktop builds** с новым тегом.
+В разделе [Releases](https://github.com/jaFuart/2gis-desktop/releases/latest) доступны архивы для Windows x64, macOS Apple Silicon и macOS Intel. Для фонового сбора нужен установленный Google Chrome.
 
 - **Windows** — распакуйте архив целиком и запустите `2GIS-Export.exe`.
 - **macOS** — распакуйте архив своего процессора и запустите `2GIS-Export.app`. Пакет собирается без нотариального заверения Apple.
@@ -48,7 +67,7 @@ python parse_2gis.py --help
 
 ## Сборка и тесты
 
-На каждой целевой ОС запустите:
+Чтобы собрать приложение и прогнать тесты, выполните команды на целевой ОС.
 
 ```shell
 python -m pip install -r requirements.txt pyinstaller==6.22.3
@@ -56,6 +75,6 @@ python -m unittest discover -s tests -v
 python build.py
 ```
 
-Приложение появится в `dist`. Готовый бинарник включает Python и создаётся на целевой ОС. [Документация PyInstaller](https://www.pyinstaller.org/en/stable/usage.html)
+Приложение появится в `dist`. Готовый бинарник включает Python. Сборку нового релиза можно запустить в **Actions → Desktop builds**, указав новый тег. [Документация PyInstaller](https://www.pyinstaller.org/en/stable/usage.html)
 
 Уведомления о поставляемых библиотеках находятся в папке `licenses`. Интерфейс использует Qt Widgets через PySide6 Essentials. [Документация Qt](https://doc.qt.io/qtforpython-6/PySide6/QtWidgets/)
