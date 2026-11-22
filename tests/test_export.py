@@ -9,6 +9,7 @@ from zipfile import ZipFile
 
 import parse_2gis
 from app import city_code, file_name
+from cities import CITIES
 from desktop_backend import History, publish_result, save_checkpoint
 
 
@@ -82,6 +83,13 @@ class ExportTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             city_code("https://example.com/moscow")
         self.assertTrue(file_name("Кафе / Бар").endswith(".xlsx"))
+
+    def test_offline_city_catalogue_uses_map_aliases(self):
+        self.assertGreaterEqual(len(CITIES), 100)
+        self.assertEqual(city_code("Нижний Новгород"), "n_novgorod")
+        self.assertEqual(city_code("Питер"), "spb")
+        self.assertEqual(city_code("Орел"), CITIES["Орёл"])
+        self.assertEqual(city_code("Армавир"), "armawir")
 
 
 if __name__ == "__main__":
