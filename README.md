@@ -4,7 +4,7 @@
 
 ## Запуск приложения
 
-В разделе **Actions → Desktop builds** этого репозитория доступны архивы сборки для Windows x64, macOS Apple Silicon и macOS Intel после успешного запуска сборки.
+В разделе [Releases](https://github.com/jaFuart/2gis-desktop/releases) доступны архивы для Windows x64, macOS Apple Silicon и macOS Intel. Сборку новой версии можно запустить в **Actions → Desktop builds** с новым тегом.
 
 - **Windows** — распакуйте архив целиком и запустите `2GIS-Export.exe`.
 - **macOS** — распакуйте архив своего процессора и запустите `2GIS-Export.app`. Пакет собирается без нотариального заверения Apple.
