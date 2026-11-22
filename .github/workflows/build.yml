@@ -6,7 +6,7 @@ on:
       tag:
         description: Release tag
         required: true
-        default: v0.2.0
+        default: v0.2.1
   push:
     tags: ["v*"]
 
@@ -62,6 +62,25 @@ jobs:
       - run: python -m pip install -r requirements.txt pyinstaller==6.22.3
       - run: python -m unittest discover -s tests -v
       - run: python build.py
+      - name: Check packaged Windows startup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $env:LOCALAPPDATA = Join-Path $env:RUNNER_TEMP '2gis-smoke'
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          $history = Join-Path $env:LOCALAPPDATA '2GIS Export/history.sqlite3'
+          $process = Start-Process 'dist/2GIS-Export/2GIS-Export.exe' -WindowStyle Hidden -PassThru
+          try {
+            $deadline = (Get-Date).AddSeconds(25)
+            while (-not $process.HasExited -and -not (Test-Path -LiteralPath $history) -and (Get-Date) -lt $deadline) {
+              Start-Sleep -Milliseconds 400
+            }
+            if ($process.HasExited -or -not (Test-Path -LiteralPath $history)) {
+              throw 'The packaged app did not initialize Qt and local history.'
+            }
+          } finally {
+            if (-not $process.HasExited) { $process.Kill(); $process.WaitForExit() }
+          }
       - name: Archive Windows package
         if: runner.os == 'Windows'
         shell: pwsh
